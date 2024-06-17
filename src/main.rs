@@ -90,8 +90,12 @@ fn main() {
 	if max_delta < 0.1 {stop = true;}
     }
 
+    write_log("logs/clustered.csv", &clusters);
+}
+
+fn write_log(path: &str, clusters: &Vec<Cluster>) {
     let colors = vec!["r", "g", "b", "c", "m", "y", "k"];
-    let mut file = File::create("logs/clustered.csv").unwrap();
+    let mut file = File::create(path).unwrap();
 
     for (index, cluster) in clusters.iter().enumerate() {
 	for point in cluster.data.iter() {
