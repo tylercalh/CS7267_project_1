@@ -1,60 +1,20 @@
 
 // glam is a Rust library that provides linear algebra functionality. 
 use glam::*;
+use csv::*;
+use serde::Deserialize;
 use std::fs::File;
 use std::io::prelude::*;
 
-// The cluster maintains the state of the centroid and references to each data point that belong to it.
-struct Cluster<'a> {
-    centroid: Vec2,
-    data: Vec<&'a Vec2>,
-}
-
-impl<'a> Cluster<'a> {
-    fn new(_centroid: Vec2) -> Self {
-	Self {
-	    centroid: _centroid,
-	    data: Vec::new(),
-	}
-    }
-
-    fn mean(&self) -> Vec2 {
-	let num_points = self.data.len() as f32;
-	let total = self.data
-	    .iter()
-	    .fold(Vec2::ZERO, |acc, &&x| acc + x);
-	total / num_points
-    }
-}
-
 fn main() {
     // Default data from KMTest.csv.
-    let data: Vec<Vec2> = vec![
-	Vec2::new(2.000000, 4.000000),
-	Vec2::new(3.000000, 3.000000),
-	Vec2::new(3.000000, 4.000000),
-	Vec2::new(3.000000, 5.000000),
-	Vec2::new(4.000000, 3.000000),
-	Vec2::new(4.000000, 4.000000),
-	Vec2::new(9.000000, 4.000000),
-	Vec2::new(9.000000, 5.000000),
-	Vec2::new(9.000000, 9.000000),
-	Vec2::new(9.000000, 10.000000),
-	Vec2::new(10.000000, 4.000000),
-	Vec2::new(10.000000, 5.000000),
-	Vec2::new(10.000000, 9.000000),
-	Vec2::new(10.000000, 10.000000),
-	Vec2::new(11.000000, 10.000000),
-	Vec2::new(15.000000, 4.000000),
-	Vec2::new(15.000000, 5.000000),
-	Vec2::new(15.000000, 6.000000),
-	Vec2::new(16.000000, 4.000000),
-	Vec2::new(16.000000, 6.000000)];
+    let mut data: Vec<Vec2> = Vec::new();
+    data = read_iris();
 
     let clusters = k_means(&data);
 
     // Write the data to the log.
-    write_log("logs/clustered.csv", &clusters);
+    //write_log("logs/clustered.csv", &clusters);
 }
 
 fn k_means(data: &Vec<Vec2>) -> Vec<Cluster> {
@@ -121,4 +81,82 @@ fn write_log(path: &str, clusters: &Vec<Cluster>) {
 	    file.write_all(record.as_bytes()).unwrap();
 	}
     }
+}
+
+fn read_km_test() -> Vec<Vec2> {
+    // Read data from the csv.
+    let path = "data/kmtest.csv";
+    let mut reader = csv::ReaderBuilder::new()
+	.has_headers(false)
+	.flexible(true)
+        .delimiter(b' ')
+        .from_path(path)
+        .unwrap();
+
+    let mut km_test_records: Vec<KMTestRecord> = Vec::new();
+    for result in reader.records() {
+	let record = result.unwrap();
+	let cleaned_record = record
+	    .iter()
+	    .filter(|x| *x != "")
+	    .collect::<StringRecord>();
+	let km_test_record: KMTestRecord = cleaned_record.deserialize(None).unwrap();
+	km_test_records.push(km_test_record);
+    }
+
+    // Convert the record type to generic Vec2 data.
+    km_test_records.iter().map(|r| Vec2::new(r.x, r.y)).collect::<Vec<Vec2>>()
+}
+
+fn read_iris() -> Vec<Vec2> {
+    let path = "data/iris.csv";
+    let mut reader = csv::ReaderBuilder::new()
+	.has_headers(false)
+	.from_path(path)
+	.unwrap();
+
+    let mut iris_records = Vec::new();
+    for result in reader.deserialize() {
+	let record: IrisRecord = result.unwrap();
+	iris_records.push(record);
+    }
+    iris_records.iter().map(|r| Vec2::new(r.c, r.d)).collect::<Vec<Vec2>>()
+}
+
+// The cluster maintains the state of the centroid and references to each data point that belong to it.
+struct Cluster<'a> {
+    centroid: Vec2,
+    data: Vec<&'a Vec2>,
+}
+
+impl<'a> Cluster<'a> {
+    fn new(_centroid: Vec2) -> Self {
+	Self {
+	    centroid: _centroid,
+	    data: Vec::new(),
+	}
+    }
+
+    fn mean(&self) -> Vec2 {
+	let num_points = self.data.len() as f32;
+	let total = self.data
+	    .iter()
+	    .fold(Vec2::ZERO, |acc, &&x| acc + x);
+	total / num_points
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct KMTestRecord {
+    x: f32,
+    y: f32,
+}
+
+#[derive(Debug, Deserialize)]
+struct IrisRecord {
+    a: f32,
+    b: f32,
+    c: f32,
+    d: f32,
+    e: String,
 }
