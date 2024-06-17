@@ -67,13 +67,7 @@ fn main() {
 
 	// clusters take closest points
 	for point in data.iter() {
-	    let mut min_index = 0;
-	    for cur_index in 1..clusters.len() {
-		let d1 = point.distance(clusters[min_index].centroid);
-		let d2 = point.distance(clusters[cur_index].centroid);
-		if d2 < d1 {min_index = cur_index;}
-	    }
-
+	    let min_index = closest_cluster(point, &clusters);
 	    clusters[min_index].data.push(point);
 	}
 
@@ -91,6 +85,16 @@ fn main() {
     }
 
     write_log("logs/clustered.csv", &clusters);
+}
+
+fn closest_cluster(point: &Vec2, clusters: &Vec<Cluster>) -> usize {
+    let mut min_index = 0;
+    for cur_index in 1..clusters.len() {
+	let d0 = point.distance(clusters[min_index].centroid);
+	let d1 = point.distance(clusters[cur_index].centroid);
+	if d1 < d0 {min_index = cur_index;}
+    }
+    min_index
 }
 
 fn write_log(path: &str, clusters: &Vec<Cluster>) {
