@@ -14,6 +14,14 @@ impl<'a> Cluster<'a> {
 	    data: Vec::new(),
 	}
     }
+
+    fn mean(&self) -> Vec2 {
+	let num_points = self.data.len() as f32;
+	let total = self.data
+	    .iter()
+	    .fold(Vec2::ZERO, |acc, &&x| acc + x);
+	total / num_points
+    }
 }
 
 fn main() {
@@ -72,13 +80,8 @@ fn main() {
 	// means are recalculated.
 	let mut max_delta = 0.0;
 	for cluster in clusters.iter_mut() {
-	    let num_clusters = cluster.data.len() as f32;
 	    let prev_mean = cluster.centroid;
-	    let total = cluster
-		.data
-		.iter()
-		.fold(Vec2::ZERO, |acc, &&x| acc + x);
-	    let new_mean = total / num_clusters;
+	    let new_mean = cluster.mean();
 	    cluster.centroid = new_mean;
 
 	    let delta = (new_mean - prev_mean).length();
