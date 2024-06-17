@@ -51,13 +51,20 @@ fn main() {
 	Vec2::new(16.000000, 4.000000),
 	Vec2::new(16.000000, 6.000000)];
 
+    let clusters = k_means(&data);
+
+    // Write the data to the log.
+    write_log("logs/clustered.csv", &clusters);
+}
+
+fn k_means(data: &Vec<Vec2>) -> Vec<Cluster> {
     // Initialize K clusters.
     let mut clusters: Vec<Cluster> = Vec::new();
     const K: usize = 3;
     clusters.push(Cluster::new(Vec2::new(2.5, 2.5)));
     clusters.push(Cluster::new(Vec2::new(5.0, 5.0)));
     clusters.push(Cluster::new(Vec2::new(16.0, 10.0)));
-
+    
     let mut stop = false;
     while !stop {
 
@@ -83,12 +90,11 @@ fn main() {
 	    let delta = (new_mean - prev_mean).length();
 	    if delta > max_delta {max_delta = delta;}
 	}
-	// Congergence is reached when centroid movement is sufficiently small.
+	// Convergence is reached when centroid movement is sufficiently small.
 	if max_delta < 0.1 {stop = true;}
     }
-
-    // Write the data to the log.
-    write_log("logs/clustered.csv", &clusters);
+    
+    clusters
 }
 
 
