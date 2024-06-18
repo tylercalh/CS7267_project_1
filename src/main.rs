@@ -7,23 +7,44 @@ use std::fs::File;
 use std::io::prelude::*;
 
 fn main() {
+    // Configurations:
+    const NORMALIZE: bool = true;
+    const DATASET: usize = 1; // 0 for kmtest.csv, 1 for iris.csv
+    
     // Default data from KMTest.csv.
     let mut data: Vec<Vec2> = Vec::new();
-    data = read_iris();
+    data = match DATASET {
+	0 => read_km_test(),
+	1 => read_iris(),
+	_ => read_km_test(),
+    };
+
+    data = match NORMALIZE {
+	true => normalize_data(&data),
+	false => data,
+    };
+
+    normalize_data(&data);
 
     let clusters = k_means(&data);
 
+    let mut sse = 0.0;
+    for cluster in clusters.iter() {
+	sse += cluster.sse();
+    }
+    println!("{}", sse);
+
     // Write the data to the log.
-    //write_log("logs/clustered.csv", &clusters);
+    write_log("logs/2b_worst.csv", &clusters);
 }
 
 fn k_means(data: &Vec<Vec2>) -> Vec<Cluster> {
     // Initialize K clusters.
     let mut clusters: Vec<Cluster> = Vec::new();
-    const K: usize = 3;
-    clusters.push(Cluster::new(Vec2::new(2.5, 2.5)));
-    clusters.push(Cluster::new(Vec2::new(5.0, 5.0)));
-    clusters.push(Cluster::new(Vec2::new(16.0, 10.0)));
+
+    //1a_k2
+    clusters.push(Cluster::new(Vec2::new(4.0, 4.0)));
+    clusters.push(Cluster::new(Vec2::new(12.0, 7.0)));
     
     let mut stop = false;
     while !stop {
@@ -51,7 +72,7 @@ fn k_means(data: &Vec<Vec2>) -> Vec<Cluster> {
 	    if delta > max_delta {max_delta = delta;}
 	}
 	// Convergence is reached when centroid movement is sufficiently small.
-	if max_delta < 0.1 {stop = true;}
+	if max_delta < 1.0 {stop = true;}
     }
     
     clusters
@@ -70,6 +91,22 @@ fn closest_cluster(point: &Vec2, clusters: &Vec<Cluster>) -> usize {
     min_index
 }
 
+// Normalize the dataset with z-score normalization.
+fn normalize_data(data: &Vec<Vec2>) -> Vec<Vec2> {
+    let n = data.len() as f32;
+    let total = data.iter().fold(Vec2::ZERO, |acc, x| acc + *x);
+    let mu = total / n;
+
+    let sigma_square = data
+	.iter()
+	.map(|x| (*x - mu) * (*x - mu))
+	.fold(Vec2::ZERO, |acc, x| acc + x) / n;
+
+    let sigma = Vec2::new(sigma_square.x.sqrt(), sigma_square.y.sqrt());
+
+    data.iter().map(|x| (*x - mu) / sigma).collect::<Vec<Vec2>>()
+}
+
 // Format and write the data to a log file.
 fn write_log(path: &str, clusters: &Vec<Cluster>) {
     let colors = vec!["r", "g", "b", "c", "m", "y", "k"];
@@ -80,6 +117,8 @@ fn write_log(path: &str, clusters: &Vec<Cluster>) {
 	    let record = format!("{} {} \"{}\"\n", point.x, point.y, colors[index]);
 	    file.write_all(record.as_bytes()).unwrap();
 	}
+	let record = format!("{} {} \"{}\"\n", cluster.centroid.x, cluster.centroid.y, colors[6]);
+	file.write_all(record.as_bytes()).unwrap();
     }
 }
 
@@ -143,6 +182,15 @@ impl<'a> Cluster<'a> {
 	    .iter()
 	    .fold(Vec2::ZERO, |acc, &&x| acc + x);
 	total / num_points
+    }
+
+    fn sse(&self) -> f32 {
+	let mut sse = 0.0;
+	for point in self.data.iter() {
+	    let distance = point.distance(self.centroid);
+	    sse += distance * distance;
+	}
+	sse
     }
 }
 
